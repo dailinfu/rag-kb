@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: rag-kb
+  # Redis 用于 Redisson 分布式限流；可通过环境变量覆盖连接地址
+  redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+  # 嵌入式 H2 文件库：数据持久化在 ./data/ragkb 目录，重启不丢失
+  datasource:
+    url: jdbc:h2:file:./data/ragkb;AUTO_SERVER=TRUE;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  # 开启 H2 控制台：浏览器访问 http://localhost:8080/h2-console 查看表与数据
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  # 上传文件大小限制（原型场景放宽到 20MB）
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+# RAG 业务与模型相关配置（均可在 application.yml 中调整）
+rag:
+  # 本地 Ollama 服务地址（先在本机安装并启动 Ollama：https://ollama.com）
+  ollama:
+    base-url: http://127.0.0.1:11434
+    # 对话模型（本地安装模型：ollama pull qwen3.5:4b）
+    chat-model: qwen3.5:4b
+    # 向量化模型，需提前拉取：ollama pull nomic-embed-text
+    embedding-model: nomic-embed-text
+    # 对话温度：越低越严谨，适合知识库问答
+    temperature: 0.2
+  # 文档分块策略
+  chunk:
+    # 每个分块字符数
+    size: 500
+    # 相邻分块重叠字符数，降低上下文割裂
+    overlap: 80
+  # 检索策略
+  retrieval:
+    # 召回片段数量上限
+    max-results: 4
+    # 最低余弦相似度（0~1），低于该分数的片段丢弃
+    min-score: 0.5
+  # 安全校验
+  security:
+    # 单条问题最大字符数，防止超长请求挤占上下文与 token
+    max-question-length: 1000
+
+logging:
+  level:
+    com.example.rag: info
